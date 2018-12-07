@@ -1,5 +1,7 @@
-from datetime import datetime
 import os
+from datetime import datetime
+
+from utils import Utils
 
 class Logger:
     """Collects text input for multiple files and writes them into a specific log folder structure.
@@ -28,23 +30,7 @@ class Logger:
             verbosity: the level of verbosity for the logger. See Logger.Verbosity
             include_timestamps: bool flag indicating whether or not to prepend a timestamp to print messages and add a timestamp when writing to file.
         """
-        now = datetime.now()
-
-        log_path = 'logs/'
-        log_path += '/'.join(map(lambda x: '{:02d}'.format(x), [now.year, now.month, now.day]))
-        log_path += '/run'
-
-        if not os.path.isdir(log_path):
-            log_path += '/001'
-        else:
-            run_number = 1
-
-            with os.scandir(log_path) as it:
-                for entry in it:
-                    if entry.is_dir() and entry.name == '{:03d}'.format(run_number):
-                        run_number += 1
-
-            log_path += '/{:03d}'.format(run_number)
+        log_path = Utils.get_run_path(prefix='logs/')
 
         self.verbosity = verbosity
         self.include_timestamps = include_timestamps
@@ -95,7 +81,7 @@ class Logger:
         self.print('Writing log to directory: {}'.format(self.log_path), Logger.Verbosity.MINIMAL)
 
         for filename in self.logs:
-            fullpath = '{}/{}.log'.format(self.log_path, filename)
+            fullpath = '{}{}.log'.format(self.log_path, filename)
 
             self.print(fullpath, Logger.Verbosity.FULL)
 
