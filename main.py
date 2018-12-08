@@ -4,13 +4,13 @@ import time
 from pathlib import Path
 
 import gym
+import numpy as np
         
 from utils.logger import Logger
-from utils.annealing import ExponentialDecay
+from utils.annealing import ExponentialDecay, Step
 from agent import CartPoleAgent
 
 parser = argparse.ArgumentParser(description='Train a Q-Learning agent on the CartPole problem.')
-parser.add_argument('--n-buckets', type=int, default=10, help='the number buckets to divide the observation space into.')
 parser.add_argument('--n-episodes', type=int, default=100, help='the number of episodes to run.')
 parser.add_argument('--checkpoint-rate', type=int, default=1000, help='how often the logs and model should be checkpointed (in episodes). \
 Set to -1 to disable checkpoints')
@@ -28,7 +28,9 @@ if args.model_path:
     agent = CartPoleAgent.load(args.model_path)
     args.model_name = Path(args.model_path).name
 else:
-    agent = CartPoleAgent(env.action_space, env.observation_space, n_buckets=args.n_buckets, exploration_rate_annealing=ExponentialDecay())
+    agent = CartPoleAgent(env.action_space, env.observation_space, 
+                            n_buckets=20, learning_rate=0.2, learning_rate_annealing=Step(k=1e-3, step_after=100), 
+                            exploration_rate_annealing=ExponentialDecay(k=1e-4), discount_factor=0.99)
 
 model_filename = args.model_name + '.q'
 checkpoint_filename_format = args.model_name + '-checkpoint-{:03d}.q'
@@ -52,9 +54,13 @@ for i_episode in range(args.n_episodes):
 
     if agent.learning_rate_annealing:
         logger.log('learning_rate', agent.learning_rate_annealing(agent.learning_rate, i_episode))
+    else:
+        logger.log('learning_rate', agent.learning_rate)
 
     if agent.exploration_rate_annealing:
         logger.log('exploration_rate', agent.exploration_rate_annealing(agent.exploration_rate, i_episode))
+    else:
+        logger.log('exploration_rate', agent.exploration_rate)
 
     # checkpointing
     if i_episode > 0 and i_episode % args.checkpoint_rate  == 0:

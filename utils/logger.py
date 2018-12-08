@@ -32,7 +32,7 @@ class Logger:
             include_timestamps: bool flag indicating whether or not to prepend a timestamp to print messages and add a timestamp when writing to file.
             filename_prefix: a string to prefix to filenames.
         """
-        log_path = get_run_path(prefix='logs/')
+        log_path = get_run_path(prefix='data/')
 
         self.verbosity = verbosity
         self.include_timestamps = include_timestamps

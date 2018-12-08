@@ -1,5 +1,5 @@
 import os
-import unittest
+from collections import defaultdict
 from datetime import datetime
 
 import numpy as np
@@ -17,7 +17,7 @@ class CartPoleAgent:
     The observation space for the cart pole problem is continuous so the agent buckets (discretises) the observation data.
     """
     def __init__(self, action_space: Discrete, observation_space: Box, n_buckets: int=100, learning_rate=0.1, learning_rate_annealing=None,
-        discount_rate=0.9, exploration_rate=1.0, exploration_rate_annealing=None, initial_q_value = 0):
+        discount_factor=0.99, exploration_rate=1.0, exploration_rate_annealing=None, initial_q_value = 0):
         """Setup the agent.
 
         Arguments:
@@ -26,7 +26,7 @@ class CartPoleAgent:
             n_buckets: how many buckets to separate the observation space into (since it is continuous).
             learning_rate: how much a recent experience affects future actions.
             learning_rate_annealing: an Annealer object that decays the learning rate over time.
-            discount_rate: how much weight future Q-values have during Q-value update (also called gamma).
+            discount_factor: how much weight future Q-values have during Q-value update (also called gamma).
             exploration_rate: the C variable from the bonus function as defined in UCB-1. Controls how much exploration is done.
             exploration_rate_annealing: an Annealer object that decays the exploration rate over time.
             initial_q_value: the value the Q-values should be initialised to.
@@ -37,11 +37,11 @@ class CartPoleAgent:
         self.q_table = ObservationDict(initial_q_value, action_space.n, self.bucketer)
         self.learning_rate = learning_rate
         self.learning_rate_annealing = learning_rate_annealing
-        self.discount_rate = discount_rate
+        self.discount_factor = discount_factor
         self.exploration_rate = exploration_rate
         self.exploration_rate_annealing = exploration_rate_annealing
 
-        self.model_path = get_run_path(prefix='models/')
+        self.model_path = get_run_path(prefix='data/')
 
     def get_action(self, observation, t=0):
         """Get the best action based on the current observation.
@@ -75,7 +75,7 @@ class CartPoleAgent:
             observation: the set of observation values for the next step.
             t: the timestep in the current episode.
         """
-        old_Q = self.q_table[prev_observation][prev_action]
+        prev_Q = self.q_table[prev_observation][prev_action]
         action = self.get_action(observation, t)
         next_Q = self.q_table[observation][action]
 
@@ -84,8 +84,8 @@ class CartPoleAgent:
         else:
             a = self.learning_rate
         
-        g = self.discount_rate
-        self.q_table[prev_observation][prev_action] = (1 - a) * old_Q  + a * reward + g * next_Q  
+        g = self.discount_factor
+        self.q_table[prev_observation][prev_action] = (1 - a) * prev_Q  + a * (reward + g * next_Q)
 
     def bonus(self, observation, action, t):
         """Calculate the exploration bonus for the observation-action pair.
