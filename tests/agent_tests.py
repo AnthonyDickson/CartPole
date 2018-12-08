@@ -31,10 +31,10 @@ class TestAgent(unittest.TestCase):
     def test_bucketing(self):
         observation = self.env.reset() 
 
-        assert self.agent.get_bucketed(observation).min() != -1
+        assert min(self.agent.bucketer(observation)) != -1
         
-        for value in self.agent.get_bucketed(observation):
-            assert 0 <= value <= self.agent.n_buckets
+        for value in self.agent.bucketer(observation):
+            assert 0 <= value <= self.agent.bucketer.n_buckets
 
     @test
     def test_valid_selection(self):
@@ -66,14 +66,20 @@ class TestAgent(unittest.TestCase):
         prev_action = action
 
         self.agent.update(prev_observation, prev_action, reward, observation)
-
-        self.agent.save()
-        model_path = self.agent.model_path
+        
+        model_path = self.agent.save()
         prev_q_table = self.agent.q_table
         del self.agent
 
         self.agent = CartPoleAgent.load(model_path)
         assert str(self.agent.q_table) == str(prev_q_table)
+
+        # Cleanup
+        try:
+            os.remove(model_path)
+            os.rmdir(self.agent.model_path)
+        except OSError:
+            print('WARNING: Could not delete test model, or its containing directory.')
 
 if __name__ == '__main__':
     unittest.main()

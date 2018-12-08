@@ -31,7 +31,7 @@ class CartPoleAgent:
         self.learning_rate = learning_rate
         self.discount_rate = discount_rate
 
-        self.model_path = ''
+        self.model_path = Utils.get_run_path(prefix='models/')
 
     def get_action(self, observation):
         """Get the best action based on the current observation.
@@ -108,16 +108,15 @@ class CartPoleAgent:
 
         Returns: the path of to where the file was saved.
         """
-        path = Utils.get_run_path(prefix='models/')
-        os.makedirs(path, exist_ok=True)
-        self.model_path = path + filename
+        os.makedirs(self.model_path, exist_ok=True)
+        path = self.model_path + filename
 
-        with open(path + filename, 'wb') as f:
+        with open(path, 'wb') as f:
             f.write(pickle.dumps(self))
 
-        print('[{}] Saving model to: {}'.format(datetime.now(), self.model_path))
+        print('[{}] Saving model to: {}'.format(datetime.now(), path))
 
-        return self.model_path
+        return path
 
     @staticmethod
     def load(fullpath):

@@ -10,6 +10,7 @@ from logger import Logger
 from agent import CartPoleAgent
 
 parser = argparse.ArgumentParser(description='Train a Q-Learning agent on the CartPole problem.')
+parser.add_argument('--n-buckets', type=int, default=10, help='the number buckets to divide the observation space into.')
 parser.add_argument('--n-episodes', type=int, default=100, help='the number of episodes to run.')
 parser.add_argument('--checkpoint-rate', type=int, default=1000, help='how often the logs and model should be checkpointed (in episodes). \
 Set to -1 to disable checkpoints')
@@ -27,8 +28,9 @@ if args.model_path:
     agent = CartPoleAgent.load(args.model_path)
     args.model_name = Path(args.model_path).name
 else:
-    agent = CartPoleAgent(env.action_space, env.observation_space)
+    agent = CartPoleAgent(env.action_space, env.observation_space, n_buckets=args.n_buckets)
 
+model_filename = args.model_name + '.q'
 checkpoint_filename_format = args.model_name + '-checkpoint-{:03d}.q'
 logger = Logger(verbosity=args.log_verbosity, filename_prefix=args.model_name)
 logger.log('episode_info', 'episode, timesteps')  # csv headings for episode info
@@ -49,7 +51,7 @@ for i_episode in range(args.n_episodes):
         checkpoint = i_episode // args.checkpoint_rate 
 
         logger.print('Checkpoint #{}'.format(checkpoint))
-        logger.print('Total elapsed time: {}s'.format(time.time() - start))
+        logger.print('Total elapsed time: {:02.4f}s'.format(time.time() - start))
         agent.save(checkpoint_filename_format.format(checkpoint))
         logger.write(mode='a')
         logger.clear()
@@ -83,4 +85,4 @@ for i_episode in range(args.n_episodes):
 
 env.close()
 logger.write(mode='a')
-agent.save()
+agent.save(model_filename)

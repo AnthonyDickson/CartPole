@@ -7,12 +7,12 @@ import numpy as np
 class Utils:
     @staticmethod
     def get_run_path(prefix=''):
-        """Generate a path string in the format 'prefix/yyyy/mm/dd/run/nnn'.
+        """Generate a path string in the format 'prefix/yyyy/mm/dd/run/nnn/'.
 
         Arguments:
             prefix: the path to prepend to the run path.
 
-        Returns: a path string in the format 'prefix/yyyy/mm/dd/run/nnn' 
+        Returns: a path string in the format 'prefix/yyyy/mm/dd/run/nnn/' 
                  where prefix is the parameter 'prefix', yyyy/mm/dd is the date, and nnn is the 3-digit zero-padded run number.
         """
         if len(prefix) > 0 and prefix[-1] != '/':
@@ -109,6 +109,7 @@ class MultiBucketer(BuckterInterface):
         assert len(lower_bounds) == len(upper_bounds)
 
         self.n = len(lower_bounds)
+        self.n_buckets = n_buckets
         self.bucketers = [Bucketer(lower, upper, n_buckets) for (lower, upper) in zip(lower_bounds, upper_bounds)]
 
     def get_bucketed(self, values):
@@ -160,3 +161,6 @@ class ObservationDict:
 
     def __getitem__(self, key):
         return self.get(key)
+
+    def __str__(self):
+        return str(self.table)
