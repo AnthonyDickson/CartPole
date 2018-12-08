@@ -115,7 +115,7 @@ class CartPoleAgent:
         with open(path + filename, 'wb') as f:
             f.write(pickle.dumps(self))
 
-        print('{} Saving model to directory: {}'.format(datetime.now(), self.model_path))
+        print('[{}] Saving model to: {}'.format(datetime.now(), self.model_path))
 
         return self.model_path
 

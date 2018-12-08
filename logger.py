@@ -89,7 +89,7 @@ class Logger:
         """
         os.makedirs(self.log_path, exist_ok=True)
         
-        self.print('Writing log to directory: {}'.format(self.log_path), Logger.Verbosity.MINIMAL)
+        self.print('Writing logs to: {}'.format(self.log_path), Logger.Verbosity.MINIMAL)
 
         for filename in self.logs:
             if len(self.filename_prefix) > 0:
