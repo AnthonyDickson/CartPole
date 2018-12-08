@@ -22,18 +22,21 @@ class Logger:
         SILENT = 0
         MINIMAL = 1
         FULL = 2
+        ALL = [SILENT, MINIMAL, FULL]
 
-    def __init__(self, verbosity=Verbosity.SILENT, include_timestamps=True):
+    def __init__(self, verbosity=Verbosity.SILENT, include_timestamps=True, filename_prefix=''):
         """Make a logger to record text to multiple files.
 
         Arguments:
             verbosity: the level of verbosity for the logger. See Logger.Verbosity
             include_timestamps: bool flag indicating whether or not to prepend a timestamp to print messages and add a timestamp when writing to file.
+            filename_prefix: a string to prefix to filenames.
         """
         log_path = Utils.get_run_path(prefix='logs/')
 
         self.verbosity = verbosity
         self.include_timestamps = include_timestamps
+        self.filename_prefix = filename_prefix
         self.log_path = log_path
         self.logs = {}
 
@@ -66,6 +69,14 @@ class Logger:
             self.logs[filename].append(str(contents))
         except KeyError:
             self.logs[filename] = [str(contents)]
+
+    def clear(self):
+        """Clear the log.
+
+        If the log is getting big it is useful to do a write + clear. If you want to write to the same logs later on 
+        you can write using the append mode.
+        """
+        self.logs = {}
         
     def write(self, mode='w', sep='\n'):
         """Write the logs to file.
@@ -81,9 +92,12 @@ class Logger:
         self.print('Writing log to directory: {}'.format(self.log_path), Logger.Verbosity.MINIMAL)
 
         for filename in self.logs:
-            fullpath = '{}{}.log'.format(self.log_path, filename)
+            if len(self.filename_prefix) > 0:
+                fullpath = '{}{}.log'.format(self.log_path, self.filename_prefix + '-' + filename)
+            else:
+                fullpath = '{}{}.log'.format(self.log_path, filename)
 
-            self.print(fullpath, Logger.Verbosity.FULL)
+            self.print('Writing log file: {}'.format(fullpath), Logger.Verbosity.FULL)
 
             with open(fullpath, mode) as f:
                 contents = sep.join(self.logs[filename])
