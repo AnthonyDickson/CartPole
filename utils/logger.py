@@ -105,4 +105,4 @@ class Logger:
                 if self.include_timestamps:
                     contents = '[{}]\n{}'.format(datetime.now(), contents)
 
-                f.write(contents)
+                f.write(contents + '\n')
