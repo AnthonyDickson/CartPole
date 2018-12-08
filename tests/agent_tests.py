@@ -31,9 +31,9 @@ class TestAgent(unittest.TestCase):
     def test_bucketing(self):
         observation = self.env.reset() 
 
-        assert self.agent.get_buckets(observation).min() != -1
+        assert self.agent.get_bucketed(observation).min() != -1
         
-        for value in self.agent.get_buckets(observation):
+        for value in self.agent.get_bucketed(observation):
             assert 0 <= value <= self.agent.n_buckets
 
     @test

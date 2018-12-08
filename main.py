@@ -10,7 +10,10 @@ logger = Logger(Logger.Verbosity.MINIMAL)
 env = gym.make('CartPole-v0')
 agent = CartPoleAgent(env.action_space, env.observation_space)
 
-for i_episode in range(200):
+n_episodes = 100
+checkpoint_rate = 1000 
+
+for i_episode in range(n_episodes):
     observation = env.reset() 
     prev_observation = None
     prev_action = None
@@ -20,7 +23,10 @@ for i_episode in range(200):
     logger.log('rewards', episode)
     logger.log('actions', episode)
 
-    for t in range(200):
+    if i_episode % checkpoint_rate == 0:
+        agent.save('checkpoint-{:03d}.q'.format(i_episode//checkpoint_rate))
+
+    for t in range(300):
         action = agent.get_action(observation)
 
         prev_observation = observation
