@@ -47,13 +47,13 @@ class ObservationDict:
     def __getitem__(self, key):
         return self.get(key)
 
-    def flatten(self):
+    def flatten(self, include_key=True):
         for a in sorted(self.table.keys()):
             for b in sorted(self.table[a].keys()):
                 for c in sorted(self.table[a][b].keys()):
                     for d in sorted(self.table[a][b][c].keys()):
                         key = [a, b, c, d]
-                        row = [key]
+                        row = [key] if include_key else []
 
                         for value in self.table[a][b][c][d]:
                             row.append(value)

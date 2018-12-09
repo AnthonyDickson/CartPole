@@ -91,7 +91,7 @@ class Dashboard:
         img = axis.imshow(df.drop('observation', axis=1), cmap='hot_r')
         plt.colorbar(img, ax=axis)
 
-        step = int(log(len(df)))
+        step = max(int(log(len(df))), 1)
         ticks = [i for i in range(0, len(df), step)]
         axis.set_yticks(ticks)
         axis.set_yticklabels(df['observation'][df.index % step == 0])

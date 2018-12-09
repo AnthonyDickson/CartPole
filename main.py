@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
         
-from utils.annealing import Step, TReciprocal
+from utils.annealing import Step, TReciprocal, ExponentialDecay
 from utils.logger import Logger
 from utils.path import get_run_path
 from utils.visualisation import Dashboard
@@ -17,7 +17,7 @@ from agent import CartPoleAgent
 
 parser = argparse.ArgumentParser(description='Train a Q-Learning agent on the CartPole problem.')
 parser.add_argument('--n-episodes', type=int, default=100, help='the number of episodes to run.')
-parser.add_argument('--checkpoint-rate', type=int, default=1000, help='how often the logs and model should be checkpointed (in episodes). \
+parser.add_argument('--checkpoint-rate', type=int, default=500, help='how often the logs and model should be checkpointed (in episodes). \
 Set to -1 to disable checkpoints')
 parser.add_argument('--render', action='store_true', help='flag to indicate the training should be rendered.')
 parser.add_argument('--live-plot', action='store_true', help='flag to indicate the training data should be plotted in real-time.')
@@ -54,8 +54,8 @@ if args.model_path:
     agent.model_path = get_run_path(prefix='data/')
 else:
     agent = CartPoleAgent(env.action_space, env.observation_space, 
-                            n_buckets=6, learning_rate=1e-1, learning_rate_annealing=Step(k=1e-3, step_after=1000), 
-                            exploration_rate=0.12, 
+                            n_buckets=6, learning_rate=1, learning_rate_annealing=ExponentialDecay(k=1e-3), 
+                            exploration_rate=1, exploration_rate_annealing=Step(k=2e-2, step_after=100),
                             discount_factor=0.9, input_mask=[0, 1, 1, 1])
 
 start = time.time()
@@ -103,6 +103,8 @@ for i_episode in range(args.n_episodes):
     if args.live_plot and (i_episode > 0 and i_episode % args.plot_update_rate == 0):
         dashboard.draw(logger, agent.q_table)    
 
+    cumulative_reward = 0
+
     for t in range(200):
         action = agent.get_action(observation, i_episode)
         logger.print('Observation:\n{}\nAction:\n{}\n'.format(observation, action), Logger.Verbosity.FULL)
@@ -111,8 +113,9 @@ for i_episode in range(args.n_episodes):
         prev_action = action
 
         observation, reward, done, info = env.step(action)
-        logger.print('Reward for last observation: {}'.format(reward), Logger.Verbosity.FULL)
-        agent.update(prev_observation, prev_action, reward, observation, i_episode)
+        cumulative_reward += reward
+        logger.print('Reward for last observation: {}'.format(cumulative_reward), Logger.Verbosity.FULL)
+        agent.update(prev_observation, prev_action, cumulative_reward, observation, i_episode)
 
         logger.log('observations', observation)
         logger.log('rewards', reward)
