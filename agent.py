@@ -1,6 +1,5 @@
-import os
-from collections import defaultdict
 from datetime import datetime
+import os
 
 import numpy as np
 import pickle
@@ -17,7 +16,7 @@ class CartPoleAgent:
     The observation space for the cart pole problem is continuous so the agent buckets (discretises) the observation data.
     """
     def __init__(self, action_space: Discrete, observation_space: Box, n_buckets: int=100, learning_rate=0.1, learning_rate_annealing=None,
-        discount_factor=0.99, exploration_rate=1.0, exploration_rate_annealing=None, initial_q_value = 0):
+        discount_factor=0.99, exploration_rate=1.0, exploration_rate_annealing=None, initial_q_value = 0, input_mask=None):
         """Setup the agent.
 
         Arguments:
@@ -30,16 +29,20 @@ class CartPoleAgent:
             exploration_rate: the C variable from the bonus function as defined in UCB-1. Controls how much exploration is done.
             exploration_rate_annealing: an Annealer object that decays the exploration rate over time.
             initial_q_value: the value the Q-values should be initialised to.
+            input_mask: a binary mask as a list of integers, with 0 indicating the value should be ignored and 1 indicating the value should be left untouched.
         """
         self.bucketer = MultiBucketer(observation_space.low, observation_space.high, n_buckets)
         self.actions = np.arange(0, action_space.n)
-        self.action_counts = ObservationDict(0, action_space.n, self.bucketer)
-        self.q_table = ObservationDict(initial_q_value, action_space.n, self.bucketer)
+        self.action_counts = ObservationDict(0, action_space.n)
+        self.q_table = ObservationDict(initial_q_value, action_space.n)
         self.learning_rate = learning_rate
         self.learning_rate_annealing = learning_rate_annealing
         self.discount_factor = discount_factor
         self.exploration_rate = exploration_rate
         self.exploration_rate_annealing = exploration_rate_annealing
+
+        assert input_mask is None or len(input_mask) == self.bucketer.n  # ensure input mask is same dimensions as observation (state) space.
+        self.input_mask = input_mask
 
         self.model_path = get_run_path(prefix='data/')
 
@@ -52,16 +55,19 @@ class CartPoleAgent:
 
         Returns: the optimal action (integer) based on the current q_table
         """
+        observation *= self.input_mask
+        bucketed = self.bucketer.get_bucketed(observation)
+
         # UCB-1 first chooses any actions that have yet to be chosen at least once.
         for action in self.actions:
-            if self.action_counts[observation][action] < 1:
-                self.action_counts[observation][action] = 1
+            if self.action_counts[bucketed][action] < 1:
+                self.action_counts[bucketed][action] = 1
 
                 return action
 
-        q_values = [self.q_table[observation][action] + self.bonus(observation, action, t) for action in self.actions]
+        q_values = [self.q_table[bucketed][action] + self.bonus(bucketed, action, t) for action in self.actions]
         action = np.argmax(q_values)
-        self.action_counts[observation][action] += 1
+        self.action_counts[bucketed][action] += 1
 
         return action
 
@@ -75,9 +81,14 @@ class CartPoleAgent:
             observation: the set of observation values for the next step.
             t: the timestep in the current episode.
         """
-        prev_Q = self.q_table[prev_observation][prev_action]
-        action = self.get_action(observation, t)
-        next_Q = self.q_table[observation][action]
+        prev_observation *= self.input_mask
+        observation *= self.input_mask
+        prev_bucketed = self.bucketer(prev_observation)
+        bucketed = self.bucketer(observation)
+
+        prev_Q = self.q_table[prev_bucketed][prev_action]
+        action = np.argmax(self.q_table[bucketed])
+        next_Q = self.q_table[bucketed][action]
 
         if self.learning_rate_annealing:
             a = self.learning_rate_annealing(self.learning_rate, t)
@@ -85,7 +96,7 @@ class CartPoleAgent:
             a = self.learning_rate
         
         g = self.discount_factor
-        self.q_table[prev_observation][prev_action] = (1 - a) * prev_Q  + a * (reward + g * next_Q)
+        self.q_table[prev_bucketed][prev_action] = (1 - a) * prev_Q  + a * (reward + g * next_Q)
 
     def bonus(self, observation, action, t):
         """Calculate the exploration bonus for the observation-action pair.
@@ -115,7 +126,7 @@ class CartPoleAgent:
         else:
             C = self.exploration_rate
 
-        return C * np.sqrt(2 * np.log(N_st) / N_st_ai)
+        return 100 * C * np.sqrt(2 * np.log(N_st) / N_st_ai)
 
     def observation_count(self, observation):
         """Compute the sum of action_count(observation, action) for all actions.

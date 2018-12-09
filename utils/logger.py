@@ -1,5 +1,8 @@
+from io import StringIO
 import os
 from datetime import datetime
+
+import pandas as pd
 
 from utils.path import get_run_path
 
@@ -106,3 +109,15 @@ class Logger:
                     contents = '[{}]\n{}'.format(datetime.now(), contents)
 
                 f.write(contents + '\n')
+
+    def log_to_dataframe(self, name):
+        """Convert a log to a pandas DataFrame.
+
+        Strips timestamps.
+
+        Arguments:
+            name: the name of the log to convert.
+
+        Returns: the specified log as a DataFrame.
+        """
+        return pd.read_csv(StringIO('\n'.join(self.logs[name])), comment='[')

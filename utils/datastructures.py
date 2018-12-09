@@ -1,4 +1,7 @@
+from io import StringIO
+
 from numpy import full
+import pandas as pd
 
 class ObservationDict:
     """An ObservationDict is a dictionary that maps observations to a list of values.
@@ -66,6 +69,13 @@ class ObservationDict:
                                             row[2])
 
         return result
+
+    def to_dataframe(self):
+        """Convert the dict to a pandas DataFrame.
+
+        Returns: the dict as a pandas DataFrame.
+        """
+        return pd.read_csv(StringIO(self.to_csv()))
 
     def __str__(self):
         return '\n'.join(map(lambda row: str(row), self.flatten()))
