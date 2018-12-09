@@ -9,8 +9,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
         
+from utils.annealing import Step, TReciprocal
 from utils.logger import Logger
-from utils.annealing import Step
+from utils.path import get_run_path
 from utils.visualisation import Dashboard
 from agent import CartPoleAgent
 
@@ -20,6 +21,7 @@ parser.add_argument('--checkpoint-rate', type=int, default=1000, help='how often
 Set to -1 to disable checkpoints')
 parser.add_argument('--render', action='store_true', help='flag to indicate the training should be rendered.')
 parser.add_argument('--live-plot', action='store_true', help='flag to indicate the training data should be plotted in real-time.')
+parser.add_argument('--no-plot', action='store_true', help='flag to indicate the no plot should be shown.')
 parser.add_argument('--plot-update-rate', type=int, default=100, help='how often the live-plot should be updated.')
 parser.add_argument('--log-verbosity', type=int, default=Logger.Verbosity.MINIMAL, choices=Logger.Verbosity.ALL, 
     help='the verbosity level of the logger.')
@@ -27,26 +29,34 @@ parser.add_argument('--model-name', type=str, default='RoleyPoley', help='the na
 parser.add_argument('--model-path', type=str, help='the path to a previous model. If this is set the designated model will be used for training.')
 
 args = parser.parse_args()
+
+if args.no_plot:
+    args.live_plot = False
+
+if not args.no_plot:
+    dashboard = Dashboard(ema_alpha=1e-2, real_time=args.live_plot)
+
+# Setup logger
+logger = Logger(verbosity=args.log_verbosity, filename_prefix=args.model_name)
+logger.log('episode_info', 'episode,timesteps')
+logger.log('learning_rate', 'learning_rate')
+logger.log('exploration_rate', 'exploration_rate')
+
+# Load OpenAI Gym and agent.
 env = gym.make('CartPole-v0')
+
+model_filename = args.model_name + '.q'
+checkpoint_filename_format = args.model_name + '-checkpoint-{:03d}.q'
 
 if args.model_path:
     agent = CartPoleAgent.load(args.model_path)
     args.model_name = Path(args.model_path).name
+    agent.model_path = get_run_path(prefix='data/')
 else:
     agent = CartPoleAgent(env.action_space, env.observation_space, 
                             n_buckets=6, learning_rate=1e-1, learning_rate_annealing=Step(k=1e-3, step_after=1000), 
-                            exploration_rate_annealing=Step(k=1e-1, step_after=args.n_episodes//10), discount_factor=0.9,
-                            input_mask=[0, 1, 1, 1])
-
-model_filename = args.model_name + '.q'
-checkpoint_filename_format = args.model_name + '-checkpoint-{:03d}.q'
-logger = Logger(verbosity=args.log_verbosity, filename_prefix=args.model_name)
-dashboard = Dashboard()
-
-# Add csv headings.
-logger.log('episode_info', 'episode,timesteps')
-logger.log('learning_rate', 'learning_rate')
-logger.log('exploration_rate', 'exploration_rate')
+                            exploration_rate=0.12, 
+                            discount_factor=0.9, input_mask=[0, 1, 1, 1])
 
 start = time.time()
 
@@ -74,7 +84,7 @@ for i_episode in range(args.n_episodes):
         logger.log('exploration_rate', agent.exploration_rate)
 
     # checkpointing
-    if i_episode > 0 and i_episode % args.checkpoint_rate  == 0:
+    if i_episode % args.checkpoint_rate  == 0:
         checkpoint = i_episode // args.checkpoint_rate 
 
         logger.print('Checkpoint #{}'.format(checkpoint))
@@ -122,7 +132,11 @@ env.close()
 logger.write(mode='w' if args.live_plot else 'a')
 agent.save(model_filename)
 
-if args.live_plot:
-    dashboard.draw(logger, agent.q_table)
+if args.live_plot or not args.no_plot:
+    if args.live_plot:
+        dashboard.draw(logger, agent.q_table)
+    else:
+        dashboard.warmup(logger, agent.q_table)
+
     dashboard.keep_on_screen()
     dashboard.close()

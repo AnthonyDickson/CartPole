@@ -42,7 +42,7 @@ class CartPoleAgent:
         self.exploration_rate_annealing = exploration_rate_annealing
 
         assert input_mask is None or len(input_mask) == self.bucketer.n  # ensure input mask is same dimensions as observation (state) space.
-        self.input_mask = input_mask
+        self.input_mask = input_mask if input_mask else np.ones(self.bucketer.n)
 
         self.model_path = get_run_path(prefix='data/')
 

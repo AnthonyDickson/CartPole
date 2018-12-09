@@ -15,8 +15,7 @@ class Dashboard:
         
         if real_time:
             plt.ion()
-
-        self.fig.show()
+            self.fig.show()
 
     def moving_average(self, series):
         result = [series.iloc[0]]
